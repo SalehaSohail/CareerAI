@@ -70,11 +70,9 @@ def calculate_job_matches(resume_text, jobs):
 
 if __name__ == "__main__":
     from jobs import get_all_jobs
+    from resume import get_resume_text
 
-    resume_text = """
-    Python SQL machine learning pandas scikit-learn FastAPI
-    data analysis artificial intelligence
-    """
+    resume_text = get_resume_text()
 
     jobs = get_all_jobs()
 
