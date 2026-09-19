@@ -14,10 +14,7 @@ inside a function because as more and more features are added to the
 application, it will help make the code reusable.
 """
 
-
 from database import get_connection
-
-
 def get_all_jobs():
     connection = get_connection()
 
@@ -36,10 +33,25 @@ def get_all_jobs():
         ORDER BY id;
     """)
 
-    jobs = cursor.fetchall()
+    rows = cursor.fetchall()
 
     cursor.close()
     connection.close()
+
+    jobs = []
+
+    for row in rows:
+        job = {
+            "id": row[0],
+            "title": row[1],
+            "company": row[2],
+            "location": row[3],
+            "employment_type": row[4],
+            "experience_level": row[5],
+            "description": row[6],
+        }
+
+        jobs.append(job)
 
     return jobs
 
