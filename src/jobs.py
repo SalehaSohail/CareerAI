@@ -1,21 +1,38 @@
+
 """
-This file includes the functions required to extract job
-information from the PostgreSQL database. In the function called
-get_all_jobs(), a database connection is first established, and then
-a SQL query is executed in order to fetch all the records of
-available jobs. In the query, only those columns are extracted that
-are currently required by CareerAI, including job title, company name,
-location, employment type, experience level, and description of the
-job. The fetched records are stored in the form of a list and can be
-further utilized in the application for job matching and ranking.
-After extracting the information, the cursor and database connection
-are closed in order to free the resources. All of this code is placed
-inside a function because as more and more features are added to the
-application, it will help make the code reusable.
+This file contains the database access logic for CareerAI jobs.
+
+The purpose of this module is to retrieve job information from the
+PostgreSQL database in a clean and reusable way. Instead of writing
+SQL queries throughout the project, CareerAI keeps the job retrieval
+logic in one place.
+
+Each job is returned as a Python dictionary containing the job ID,
+title, company, location, employment type, experience level,
+description, and required skills.
+
+Keeping database access separate from the machine learning logic
+makes the project easier to maintain. The matching module can focus
+on calculating similarity and skill matches without needing to know
+how the job data is stored in PostgreSQL.
+
+As CareerAI grows, this module can also be extended with functions
+for searching jobs, filtering by location or experience level,
+retrieving individual jobs, and managing job records.
 """
 
 from database import get_connection
+
+
 def get_all_jobs():
+    """
+    Retrieve all jobs from the PostgreSQL database.
+
+    The function returns the jobs as a list of dictionaries so that
+    other parts of CareerAI can access job information using clear
+    field names instead of numeric tuple indexes.
+    """
+
     connection = get_connection()
 
     cursor = connection.cursor()
@@ -28,7 +45,8 @@ def get_all_jobs():
             location,
             employment_type,
             experience_level,
-            description
+            description,
+            required_skills
         FROM jobs
         ORDER BY id;
     """)
@@ -49,6 +67,7 @@ def get_all_jobs():
             "employment_type": row[4],
             "experience_level": row[5],
             "description": row[6],
+            "required_skills": row[7],
         }
 
         jobs.append(job)
@@ -59,4 +78,6 @@ def get_all_jobs():
 if __name__ == "__main__":
     jobs = get_all_jobs()
 
-    print(jobs)
+    for job in jobs:
+        print(job)
+

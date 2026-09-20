@@ -30,3 +30,18 @@ def extract_text_from_pdf(file_path):
             extracted_text += page_text + "\n"
 
     return extracted_text
+
+def clean_resume_text(text):
+    """
+    Clean extracted resume text before it is used for job matching.
+
+    PDF extraction can introduce unnecessary line breaks, extra
+    whitespace, and other formatting artifacts. This function
+    normalizes the extracted text so that the matching model receives
+    cleaner input.
+    """
+
+    text = text.replace("\n", " ")
+    text = " ".join(text.split())
+
+    return text

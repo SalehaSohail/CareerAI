@@ -1,40 +1,46 @@
-
 """
-This file contains the first draft of the job matching algorithm of CareerAI.
+This file contains the job-matching logic for CareerAI.
 
-In the current state, this module compares resume text against
-job descriptions found in the database stored in PostgreSQL
-and calculates how similar the texts are. In the current state,
-CareerAI uses TF-IDF (Term Frequency-Inverse Document
-Frequency) as the algorithm for transforming text into numeric
-vectors and cosine similarity to measure the degree of their
-similarity.
+CareerAI uses three matching signals:
 
-The matching function is separated from the database function
-to give each of them its responsibilities. The database function
-fetches jobs from the database, while the matching function
-does text comparison based on machine learning algorithms.
+1. TF-IDF similarity
+   Measures similarity based on important words.
 
-This is the first draft of the matching algorithm. Further
-development may involve semantic embeddings, machine learning
-ranking, LLM explanation, and RAG.
+2. Skill matching
+   Checks which required job skills are present in the resume.
 
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity"""
+3. Semantic similarity
+   Uses sentence embeddings to compare the meaning of the
+   resume and job description.
+
+These signals are combined to produce a final matching score.
+"""
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from skill_matching import calculate_skill_match
+from embeddings import generate_embedding
+
+
 def calculate_job_matches(resume_text, jobs):
     """
-    Compare resume text with job descriptions and calculate
-    a similarity score for every job.
+    Compare the resume with every job using:
+
+    - TF-IDF similarity
+    - Skill matching
+    - Semantic embeddings
+    - Combined final score
     """
 
     job_descriptions = []
 
     for job in jobs:
         job_descriptions.append(job["description"])
+
+    # -----------------------------
+    # TF-IDF similarity
+    # -----------------------------
 
     documents = [resume_text] + job_descriptions
 
@@ -43,25 +49,93 @@ def calculate_job_matches(resume_text, jobs):
     tfidf_matrix = vectorizer.fit_transform(documents)
 
     resume_vector = tfidf_matrix[0]
+
     job_vectors = tfidf_matrix[1:]
 
-    similarity_scores = cosine_similarity(
+    tfidf_scores = cosine_similarity(
         resume_vector,
         job_vectors
     )[0]
 
+    # -----------------------------
+    # Semantic embeddings
+    # -----------------------------
+
+    resume_embedding = generate_embedding(
+        resume_text
+    )
+
+    job_embeddings = []
+
+    for description in job_descriptions:
+        embedding = generate_embedding(
+            description
+        )
+
+        job_embeddings.append(embedding)
+
+    semantic_scores = []
+
+    for job_embedding in job_embeddings:
+
+        similarity = cosine_similarity(
+            [resume_embedding],
+            [job_embedding]
+        )[0][0]
+
+        semantic_scores.append(
+            float(similarity)
+        )
+
+    # -----------------------------
+    # Combine all matching signals
+    # -----------------------------
+
     results = []
 
-    for job, score in zip(jobs, similarity_scores):
+    for job, tfidf_score, semantic_score in zip(
+        jobs,
+        tfidf_scores,
+        semantic_scores
+    ):
+
+        skill_result = calculate_skill_match(
+            resume_text,
+            job["required_skills"]
+        )
+
+        skill_score = (
+            skill_result["skill_match_percentage"] / 100
+        )
+
+        final_score = (
+            0.40 * float(tfidf_score)
+            + 0.30 * skill_score
+            + 0.30 * semantic_score
+        ) * 100
+
         result = {
             "job": job,
-            "score": float(score)
+            "tfidf_score": float(tfidf_score),
+            "semantic_score": semantic_score,
+            "skill_match_percentage": skill_result[
+                "skill_match_percentage"
+            ],
+            "final_score": final_score,
+            "matched_skills": skill_result[
+                "matched_skills"
+            ],
+            "missing_skills": skill_result[
+                "missing_skills"
+            ]
         }
 
         results.append(result)
 
+    # Sort jobs according to final matching score
+
     results.sort(
-        key=lambda item: item["score"],
+        key=lambda item: item["final_score"],
         reverse=True
     )
 
@@ -69,18 +143,68 @@ def calculate_job_matches(resume_text, jobs):
 
 
 if __name__ == "__main__":
-    from jobs import get_all_jobs
-    from resume import get_resume_text
 
-    resume_text = get_resume_text()
+    from jobs import get_all_jobs
+    from resume import (
+        extract_text_from_pdf,
+        clean_resume_text
+    )
+
+    resume_path = r"D:\CareerAI_Resume\Saleha CV.pdf"
+
+    raw_resume_text = extract_text_from_pdf(
+        resume_path
+    )
+
+    resume_text = clean_resume_text(
+        raw_resume_text
+    )
 
     jobs = get_all_jobs()
 
-    matches = calculate_job_matches(resume_text, jobs)
+    matches = calculate_job_matches(
+        resume_text,
+        jobs
+    )
 
     for match in matches:
+
         print(
-            match["job"]["title"],
-            "->",
-            round(match["score"], 3)
+            "\n" + match["job"]["title"]
+        )
+
+        print(
+            "TF-IDF Score:",
+            round(match["tfidf_score"], 3)
+        )
+
+        print(
+            "Semantic Score:",
+            round(match["semantic_score"], 3)
+        )
+
+        print(
+            "Skill Match:",
+            match["skill_match_percentage"],
+            "%"
+        )
+
+        print(
+            "Final Score:",
+            round(match["final_score"], 2),
+            "%"
+        )
+
+        print(
+            "Matched Skills:",
+            ", ".join(
+                match["matched_skills"]
+            )
+        )
+
+        print(
+            "Missing Skills:",
+            ", ".join(
+                match["missing_skills"]
+            )
         )
