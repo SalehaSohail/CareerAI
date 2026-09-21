@@ -1,0 +1,51 @@
+resume_name,job_title,company,tfidf_score,semantic_score,skill_match,label
+ML_Profile,Junior Machine Learning Engineer,TechVision,0.5246,0.6966,90.0,1
+ML_Profile,Junior Data Scientist,DataWorks,0.2988,0.648,63.64,1
+ML_Profile,AI Engineer,NexaAI,0.1984,0.4999,30.0,0
+ML_Profile,Python Developer,CodeLabs,0.0828,0.4616,22.22,0
+ML_Profile,Machine Learning Intern,AILabs,0.4234,0.6013,90.91,1
+ML_Profile,Data Analyst,InsightTech,0.173,0.4391,33.33,1
+ML_Profile,Junior AI Developer,FutureSoft,0.1045,0.4034,18.18,0
+ML_Profile,NLP Engineer,LanguageAI,0.2308,0.4357,44.44,0
+ML_Profile,Backend Python Developer,CloudTech,0.0613,0.3938,20.0,0
+ML_Profile,Junior AI/ML Engineer,InnovateAI,0.3257,0.6047,53.85,1
+Data_Profile,Junior Machine Learning Engineer,TechVision,0.2696,0.6075,50.0,1
+Data_Profile,Junior Data Scientist,DataWorks,0.4024,0.6791,81.82,1
+Data_Profile,AI Engineer,NexaAI,0.077,0.4568,10.0,0
+Data_Profile,Python Developer,CodeLabs,0.1182,0.5225,33.33,0
+Data_Profile,Machine Learning Intern,AILabs,0.2375,0.5258,36.36,1
+Data_Profile,Data Analyst,InsightTech,0.3804,0.5993,77.78,1
+Data_Profile,Junior AI Developer,FutureSoft,0.0813,0.3787,9.09,0
+Data_Profile,NLP Engineer,LanguageAI,0.0577,0.3524,11.11,0
+Data_Profile,Backend Python Developer,CloudTech,0.0771,0.465,30.0,0
+Data_Profile,Junior AI/ML Engineer,InnovateAI,0.2196,0.5524,30.77,1
+AI_Profile,Junior Machine Learning Engineer,TechVision,0.1352,0.548,20.0,0
+AI_Profile,Junior Data Scientist,DataWorks,0.0973,0.4765,18.18,0
+AI_Profile,AI Engineer,NexaAI,0.2865,0.6714,90.0,1
+AI_Profile,Python Developer,CodeLabs,0.1946,0.6387,44.44,0
+AI_Profile,Machine Learning Intern,AILabs,0.1844,0.4767,18.18,0
+AI_Profile,Data Analyst,InsightTech,0.0858,0.3325,11.11,0
+AI_Profile,Junior AI Developer,FutureSoft,0.2617,0.6162,100.0,1
+AI_Profile,NLP Engineer,LanguageAI,0.1598,0.4898,44.44,1
+AI_Profile,Backend Python Developer,CloudTech,0.1666,0.6176,40.0,1
+AI_Profile,Junior AI/ML Engineer,InnovateAI,0.1816,0.5403,38.46,1
+Backend_Profile,Junior Machine Learning Engineer,TechVision,0.1191,0.5093,20.0,0
+Backend_Profile,Junior Data Scientist,DataWorks,0.0749,0.4939,18.18,0
+Backend_Profile,AI Engineer,NexaAI,0.14,0.5357,40.0,1
+Backend_Profile,Python Developer,CodeLabs,0.3965,0.6999,66.67,1
+Backend_Profile,Machine Learning Intern,AILabs,0.0736,0.4046,9.09,0
+Backend_Profile,Data Analyst,InsightTech,0.1386,0.4683,33.33,1
+Backend_Profile,Junior AI Developer,FutureSoft,0.125,0.4764,36.36,1
+Backend_Profile,NLP Engineer,LanguageAI,0.0445,0.3083,11.11,0
+Backend_Profile,Backend Python Developer,CloudTech,0.3547,0.6879,100.0,1
+Backend_Profile,Junior AI/ML Engineer,InnovateAI,0.1185,0.5048,30.77,0
+NLP_Profile,Junior Machine Learning Engineer,TechVision,0.1643,0.5407,30.0,0
+NLP_Profile,Junior Data Scientist,DataWorks,0.1221,0.5066,27.27,0
+NLP_Profile,AI Engineer,NexaAI,0.2059,0.5693,40.0,1
+NLP_Profile,Python Developer,CodeLabs,0.0693,0.4379,11.11,0
+NLP_Profile,Machine Learning Intern,AILabs,0.2264,0.5331,27.27,1
+NLP_Profile,Data Analyst,InsightTech,0.0917,0.2776,11.11,0
+NLP_Profile,Junior AI Developer,FutureSoft,0.1957,0.5373,36.36,1
+NLP_Profile,NLP Engineer,LanguageAI,0.5327,0.6938,100.0,1
+NLP_Profile,Backend Python Developer,CloudTech,0.0571,0.3755,10.0,0
+NLP_Profile,Junior AI/ML Engineer,InnovateAI,0.2288,0.5325,38.46,1

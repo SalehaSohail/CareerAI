@@ -1,0 +1,11 @@
+job_title,company,tfidf_score,semantic_score,skill_match,label
+Junior Machine Learning Engineer,TechVision,0.2964,0.3876,70.0,1
+Junior Data Scientist,DataWorks,0.2727,0.3809,72.73,1
+AI Engineer,NexaAI,0.2011,0.4328,30.0,0
+Python Developer,CodeLabs,0.1703,0.3024,44.44,0
+Machine Learning Intern,AILabs,0.2599,0.3576,81.82,1
+Data Analyst,InsightTech,0.2575,0.2893,77.78,1
+Junior AI Developer,FutureSoft,0.1748,0.3904,27.27,0
+NLP Engineer,LanguageAI,0.1543,0.4266,44.44,0
+Backend Python Developer,CloudTech,0.1098,0.3235,50.0,0
+Junior AI/ML Engineer,InnovateAI,0.2942,0.3768,76.92,1
