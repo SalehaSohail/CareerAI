@@ -1,5 +1,3 @@
-
-
 """
 LLM explanation module for CareerAI.
 
@@ -98,126 +96,42 @@ Do not introduce any additional numerical percentages or predictions.
 Keep the explanation concise and practical.
 """
 
-    response = client.chat.completions.create(
-        model="openrouter/free",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
+    try:
 
-    return response.choices[0].message.content
+        response = client.chat.completions.create(
+            model="openrouter/free",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
 
+        content = response.choices[0].message.content
 
-if __name__ == "__main__":
+        if not content:
+            return (
+                "AI explanation is temporarily unavailable. "
+                "Please try the analysis again."
+            )
 
-    from jobs import get_all_jobs
+        if content.strip().lower() == "user safety: safe":
+            return (
+                "AI explanation is temporarily unavailable. "
+                "Please try the analysis again."
+            )
 
-    from resume import (
-        extract_text_from_pdf,
-        clean_resume_text
-    )
+        return content
 
-    from matching import calculate_job_matches
+    except Exception as error:
 
+        print(
+            "LLM Error:",
+            error
+        )
 
-    # -----------------------------
-    # Load resume
-    # -----------------------------
-
-    resume_path = r"D:\CareerAI_Resume\Saleha CV.pdf"
-
-    raw_resume_text = extract_text_from_pdf(
-        resume_path
-    )
-
-    resume_text = clean_resume_text(
-        raw_resume_text
-    )
-
-
-    # -----------------------------
-    # Load jobs
-    # -----------------------------
-
-    jobs = get_all_jobs()
-
-
-    # -----------------------------
-    # Calculate job matches
-    # -----------------------------
-
-    matches = calculate_job_matches(
-        resume_text,
-        jobs
-    )
-
-
-    # -----------------------------
-    # Select best matching job
-    # -----------------------------
-
-    best_match = matches[0]
-
-    job = best_match["job"]
-
-
-    # -----------------------------
-    # Generate LLM explanation
-    # -----------------------------
-
-    explanation = generate_job_explanation(
-        job_title=job["title"],
-        company=job["company"],
-        skill_match=best_match[
-            "skill_match_percentage"
-        ],
-        matched_skills=best_match[
-            "matched_skills"
-        ],
-        missing_skills=best_match[
-            "missing_skills"
-        ],
-        tfidf_score=best_match[
-            "tfidf_score"
-        ],
-        semantic_score=best_match[
-            "semantic_score"
-        ]
-    )
-
-
-    # -----------------------------
-    # Display result
-    # -----------------------------
-
-    print("\nCareerAI LLM Explanation")
-    print("=" * 50)
-
-    print(
-        f"\nJob: {job['title']}"
-    )
-
-    print(
-        f"Company: {job['company']}"
-    )
-
-    print(
-        f"Skill Match: "
-        f"{best_match['skill_match_percentage']:.2f}%"
-    )
-
-    print(
-        f"TF-IDF Similarity: "
-        f"{best_match['tfidf_score']:.4f}"
-    )
-
-    print(
-        f"Semantic Similarity: "
-        f"{best_match['semantic_score']:.4f}"
-    )
-
-    print("\nExplanation:")
-    print(explanation)
+        return (
+            "AI explanation is temporarily unavailable. "
+            "The job matching results are still available."
+        )
