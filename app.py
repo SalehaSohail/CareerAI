@@ -12,13 +12,31 @@ import joblib
 # ============================================================
 
 SRC_PATH = Path(__file__).parent / "src"
+
 sys.path.append(str(SRC_PATH))
 
 
-from resume import extract_text_from_pdf, clean_resume_text
+# ============================================================
+# IMPORT PROJECT MODULES
+# ============================================================
+
+from resume import (
+    extract_text_from_pdf,
+    clean_resume_text
+)
+
 from jobs import get_all_jobs
+
 from matching import calculate_job_matches
-from llm_explanation import generate_job_explanation
+
+from rag_documents import create_job_documents
+
+from rag import (
+    create_document_embeddings,
+    retrieve_documents
+)
+
+from rag_llm import generate_rag_explanation
 
 
 # ============================================================
@@ -185,9 +203,13 @@ with st.sidebar:
 
         A machine-learning model calculates a relevance score.
 
-        **5. AI Explanation**
+        **5. RAG Retrieval**
 
-        An LLM explains matched and missing skills.
+        Relevant job information is retrieved from PostgreSQL.
+
+        **6. AI Explanation**
+
+        An LLM explains the retrieved information using RAG context.
         """
     )
 
@@ -216,7 +238,7 @@ st.markdown(
 
 
 # ============================================================
-# UPLOAD SECTION
+# RESUME UPLOAD
 # ============================================================
 
 st.markdown(
@@ -228,11 +250,13 @@ st.markdown(
     '<div class="upload-box">'
     '<b>Upload a PDF resume to start your analysis.</b>'
     '<br>'
-    'CareerAI will compare your resume with available jobs '
-    'and generate personalized matching insights.'
+    'CareerAI will compare your resume with available jobs, '
+    'retrieve relevant job information using RAG, and generate '
+    'AI-powered insights.'
     '</div>',
     unsafe_allow_html=True
 )
+
 
 uploaded_file = st.file_uploader(
     "Choose your resume",
@@ -242,7 +266,7 @@ uploaded_file = st.file_uploader(
 
 
 # ============================================================
-# ANALYZE
+# ANALYSIS
 # ============================================================
 
 if uploaded_file:
@@ -257,6 +281,7 @@ if uploaded_file:
         use_container_width=True
     )
 
+
     if analyze_button:
 
         with st.spinner(
@@ -264,7 +289,7 @@ if uploaded_file:
         ):
 
             # ------------------------------------------------
-            # Save PDF temporarily
+            # SAVE UPLOADED RESUME
             # ------------------------------------------------
 
             with tempfile.NamedTemporaryFile(
@@ -280,7 +305,7 @@ if uploaded_file:
 
 
             # ------------------------------------------------
-            # Extract resume text
+            # EXTRACT RESUME TEXT
             # ------------------------------------------------
 
             raw_resume_text = extract_text_from_pdf(
@@ -293,14 +318,14 @@ if uploaded_file:
 
 
             # ------------------------------------------------
-            # Load jobs
+            # GET JOBS FROM POSTGRESQL
             # ------------------------------------------------
 
             jobs = get_all_jobs()
 
 
             # ------------------------------------------------
-            # Matching
+            # EXISTING JOB MATCHING
             # ------------------------------------------------
 
             matches = calculate_job_matches(
@@ -310,7 +335,7 @@ if uploaded_file:
 
 
             # ------------------------------------------------
-            # Build dataframe
+            # CREATE MATCHING DATAFRAME
             # ------------------------------------------------
 
             rows = []
@@ -353,7 +378,7 @@ if uploaded_file:
 
 
             # ------------------------------------------------
-            # ML model
+            # ML RANKING MODEL
             # ------------------------------------------------
 
             model = joblib.load(
@@ -372,13 +397,14 @@ if uploaded_file:
 
             probabilities = model.predict_proba(X)
 
+
             data["ml_score"] = (
                 probabilities[:, 1] * 100
             )
 
 
             # ------------------------------------------------
-            # Final CareerAI score
+            # FINAL MATCH SCORE
             # ------------------------------------------------
 
             data["final_score"] = (
@@ -390,19 +416,65 @@ if uploaded_file:
             ) * 100
 
 
-            # ------------------------------------------------
-            # Ranking
-            # ------------------------------------------------
-
             data = data.sort_values(
                 "final_score",
                 ascending=False
             ).reset_index(drop=True)
 
 
-        # ====================================================
-        # RESULTS
-        # ====================================================
+            # =================================================
+            # RAG DOCUMENTS
+            # =================================================
+
+            rag_documents = create_job_documents()
+
+
+            # ------------------------------------------------
+            # CREATE DOCUMENT EMBEDDINGS
+            # ------------------------------------------------
+
+            rag_embeddings = create_document_embeddings(
+                rag_documents
+            )
+
+
+            # ------------------------------------------------
+            # CREATE RAG QUERY FROM RESUME
+            # ------------------------------------------------
+
+            rag_query = f"""
+            Find jobs relevant to this candidate.
+
+            Candidate Resume:
+            {resume_text}
+            """
+
+
+            # ------------------------------------------------
+            # RETRIEVE RELEVANT JOBS
+            # ------------------------------------------------
+
+            retrieved_documents = retrieve_documents(
+                query=rag_query,
+                documents=rag_documents,
+                document_embeddings=rag_embeddings,
+                top_k=3
+            )
+
+
+            # ------------------------------------------------
+            # RAG + LLM EXPLANATION
+            # ------------------------------------------------
+
+            rag_explanation = generate_rag_explanation(
+                query=rag_query,
+                retrieved_documents=retrieved_documents
+            )
+
+
+        # =====================================================
+        # TOP MATCHES
+        # =====================================================
 
         st.divider()
 
@@ -414,14 +486,11 @@ if uploaded_file:
         )
 
         st.write(
-            "CareerAI ranked the available jobs based on "
-            "resume-job similarity and skill alignment."
+            "CareerAI ranked the available jobs using "
+            "resume-job similarity, skill alignment, and "
+            "machine-learning relevance."
         )
 
-
-        # ====================================================
-        # TOP 3
-        # ====================================================
 
         for index, row in data.head(3).iterrows():
 
@@ -431,16 +500,13 @@ if uploaded_file:
             )
 
 
-            # ------------------------------------------------
-            # Job title
-            # ------------------------------------------------
-
             st.markdown(
                 f'<div class="job-title">'
                 f'#{index + 1} {row["job_title"]}'
                 f'</div>',
                 unsafe_allow_html=True
             )
+
 
             st.markdown(
                 f'<div class="company-location">'
@@ -452,11 +518,8 @@ if uploaded_file:
             )
 
 
-            # ------------------------------------------------
-            # Scores
-            # ------------------------------------------------
-
             col1, col2, col3 = st.columns(3)
+
 
             with col1:
 
@@ -465,12 +528,14 @@ if uploaded_file:
                     f"{row['final_score']:.2f}%"
                 )
 
+
             with col2:
 
                 st.metric(
                     "Skill Match",
                     f"{row['skill_match']:.2f}%"
                 )
+
 
             with col3:
 
@@ -481,7 +546,7 @@ if uploaded_file:
 
 
             # ------------------------------------------------
-            # Matched skills
+            # MATCHED SKILLS
             # ------------------------------------------------
 
             st.markdown("**✅ Matched Skills**")
@@ -489,6 +554,7 @@ if uploaded_file:
             matched_html = (
                 '<div class="skill-container">'
             )
+
 
             for skill in row["matched_skills"]:
 
@@ -498,7 +564,9 @@ if uploaded_file:
                     '</span>'
                 )
 
+
             matched_html += "</div>"
+
 
             st.markdown(
                 matched_html,
@@ -507,7 +575,7 @@ if uploaded_file:
 
 
             # ------------------------------------------------
-            # Missing skills
+            # MISSING SKILLS
             # ------------------------------------------------
 
             st.markdown("**❌ Missing Skills**")
@@ -515,6 +583,7 @@ if uploaded_file:
             missing_html = (
                 '<div class="skill-container">'
             )
+
 
             for skill in row["missing_skills"]:
 
@@ -524,64 +593,14 @@ if uploaded_file:
                     '</span>'
                 )
 
+
             missing_html += "</div>"
+
 
             st.markdown(
                 missing_html,
                 unsafe_allow_html=True
             )
-
-
-            # ------------------------------------------------
-            # AI explanation
-            # ------------------------------------------------
-
-            with st.expander(
-                "🤖 View AI Explanation"
-            ):
-
-                with st.spinner(
-                    "Generating AI explanation..."
-                ):
-
-                    explanation = (
-                        generate_job_explanation(
-                            job_title=row["job_title"],
-                            company=row["company"],
-                            skill_match=row["skill_match"],
-                            matched_skills=row[
-                                "matched_skills"
-                            ],
-                            missing_skills=row[
-                                "missing_skills"
-                            ],
-                            tfidf_score=row[
-                                "tfidf_score"
-                            ],
-                            semantic_score=row[
-                                "semantic_score"
-                            ]
-                        )
-                    )
-
-
-                if (
-                    explanation
-                    and explanation.strip()
-                    and explanation.strip() != "-"
-                ):
-
-                    st.markdown(
-                        explanation
-                    )
-
-                else:
-
-                    st.info(
-                        "AI explanation is temporarily "
-                        "unavailable for this job. "
-                        "The matching results are still available."
-                    )
 
 
             st.markdown(
@@ -590,9 +609,64 @@ if uploaded_file:
             )
 
 
-        # ====================================================
-        # ALL JOBS
-        # ====================================================
+        # =====================================================
+        # RAG + LLM SECTION
+        # =====================================================
+
+        st.divider()
+
+        st.markdown(
+            '<div class="section-title">'
+            '🤖 RAG + AI Career Insights'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+        st.write(
+            "CareerAI retrieves relevant job information "
+            "from the PostgreSQL job database and provides "
+            "an LLM-generated explanation based on that context."
+        )
+
+
+        with st.expander(
+            "🔎 View Retrieved RAG Jobs"
+        ):
+
+            for rank, result in enumerate(
+                retrieved_documents,
+                start=1
+            ):
+
+                st.markdown(
+                    f"### Rank {rank}"
+                )
+
+                st.write(
+                    f"Semantic Similarity: "
+                    f"{result['similarity']:.3f}"
+                )
+
+                st.text(
+                    result["document"]
+                )
+
+                st.divider()
+
+
+        with st.expander(
+            "🧠 View RAG + LLM Explanation",
+            expanded=True
+        ):
+
+            st.markdown(
+                rag_explanation
+            )
+
+
+        # =====================================================
+        # ALL JOB MATCHES
+        # =====================================================
 
         st.divider()
 
@@ -631,31 +705,37 @@ if uploaded_file:
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Skill Match": st.column_config.ProgressColumn(
-                    "Skill Match",
-                    min_value=0,
-                    max_value=100,
-                    format="%.2f%%"
-                ),
-                "ML Relevance": st.column_config.ProgressColumn(
-                    "ML Relevance",
-                    min_value=0,
-                    max_value=100,
-                    format="%.2f%%"
-                ),
-                "Final Match": st.column_config.ProgressColumn(
-                    "Final Match",
-                    min_value=0,
-                    max_value=100,
-                    format="%.2f%%"
-                )
+
+                "Skill Match":
+                    st.column_config.ProgressColumn(
+                        "Skill Match",
+                        min_value=0,
+                        max_value=100,
+                        format="%.2f%%"
+                    ),
+
+                "ML Relevance":
+                    st.column_config.ProgressColumn(
+                        "ML Relevance",
+                        min_value=0,
+                        max_value=100,
+                        format="%.2f%%"
+                    ),
+
+                "Final Match":
+                    st.column_config.ProgressColumn(
+                        "Final Match",
+                        min_value=0,
+                        max_value=100,
+                        format="%.2f%%"
+                    )
             }
         )
 
 
-        # ====================================================
+        # =====================================================
         # TECHNICAL DETAILS
-        # ====================================================
+        # =====================================================
 
         with st.expander(
             "⚙️ View Technical Matching Details"
@@ -668,7 +748,7 @@ if uploaded_file:
                 **TF-IDF Similarity — 40%**
 
                 Measures lexical similarity between the resume
-                and job description.
+                and job descriptions.
 
                 **Skill Match — 30%**
 
@@ -678,13 +758,26 @@ if uploaded_file:
                 **Semantic Similarity — 30%**
 
                 Uses sentence embeddings to compare the meaning
-                of the resume and job description.
+                of the resume and job descriptions.
 
-                ### ML Relevance
+                **ML Ranking**
 
-                The ML relevance score is generated by a prototype
-                classification model trained on synthetic training
-                data. It is not a hiring probability.
+                A prototype Random Forest model provides an
+                additional relevance signal. It was trained
+                using synthetic training data and is not a
+                hiring probability.
+
+                **RAG**
+
+                Job information is converted into semantic
+                embeddings. CareerAI retrieves the most relevant
+                job documents from the PostgreSQL-backed dataset.
+
+                **LLM**
+
+                The LLM receives the retrieved RAG context and
+                generates a grounded explanation using only
+                the retrieved information.
                 """
             )
 
